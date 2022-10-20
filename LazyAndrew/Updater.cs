@@ -64,7 +64,7 @@ public class Updater
         return plugins;
     }
 
-    private async Task<List<IUpdateStatus<PluginDto>>> GetUpdateInformation(List<IUpdateStatus<PluginDto>> plugins)
+    private async Task GetUpdateInformation(List<IUpdateStatus<PluginDto>> plugins)
     {
         // Select project ids
         var projectIds = plugins.Where(x => x.SuccessfulCheck && x.Status == CheckStatus.PendingCheck)
@@ -99,8 +99,6 @@ public class Updater
                 updateStatus.Status = CheckStatus.NewerVersionFound;
             }
         }
-
-        return plugins;
     }
 
     private async Task CheckPlugins(List<IUpdateStatus<PluginDto>> plugins)
