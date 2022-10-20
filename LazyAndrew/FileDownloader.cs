@@ -35,14 +35,13 @@ public class FileDownloader
 
     public async Task<FileInfo> DownloadFile(string url, string? hash, HashAlgorithm hashAlgorithm = HashAlgorithm.sha1)
     {
-        Log.Debug("Starting download of file from url {Url}", url);
+        Log.Debug("Downloading file from url {Url}", url);
         var stream = await _client.GetByteArrayAsync(url);
-        Log.Debug("Download completed", url);
 
         var fi = new FileInfo(Path.Combine(_tempPath, Guid.NewGuid().ToString()));
         Log.Debug("Writing file to temp path {Path}", fi.FullName);
         await File.WriteAllBytesAsync(fi.FullName, stream);
-
+        
         if (!fi.Exists)
         {
             Log.Debug("Download failed, downloaded file not found");
