@@ -30,10 +30,10 @@ public class CheckCommand : Command
 
         var updater = new Updater(di.FullName);
     
-        var plugins = await updater.CheckUpdates();
-        var pluginsOnModrinth = plugins.OrderBy(x => x.OnModrinth).ThenBy(x => x.UpToDate).ToList();
+        var statusList = await updater.CheckUpdates();
+        var pluginsOnModrinth = statusList.OrderBy(x => x.SuccessfulCheck && x.Payload.OnModrinth).ThenBy(x => x.Payload.UpToDate).ToList();
     
-        foreach (var plugin in pluginsOnModrinth)
+        foreach (var plugin in pluginsOnModrinth.Select(status => status.Payload))
         {
             if (plugin.OnModrinth == false)
             {

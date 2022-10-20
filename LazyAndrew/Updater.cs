@@ -1,5 +1,7 @@
 ﻿using System.Net;
 using System.Security.Cryptography;
+using LazyAndrew.Interfaces;
+using LazyAndrew.Models;
 using Modrinth.RestClient;
 using Modrinth.RestClient.Extensions;
 using RestEase;
@@ -40,7 +42,7 @@ public class Updater
         return latestVersion;
     }
 
-    public async Task<List<Plugin>> CheckUpdates()
+    public async Task<List<IUpdateStatus<PluginDto>>> CheckUpdates()
     {
         if (_pluginDirectory is null)
         {
@@ -59,7 +61,7 @@ public class Updater
 
         using var pbar = new ProgressBar(totalTicks, "Update check started", options);
         
-        var plugins = new List<Plugin>();
+        var plugins = new List<IUpdateStatus<PluginDto>>();
         using var cryptoService = SHA1.Create();
         foreach (var file in pluginFiles)
         {
@@ -67,7 +69,7 @@ public class Updater
             await using var stream = file.OpenRead();
             var hash = Convert.ToHexString(await cryptoService.ComputeHashAsync(stream));
 
-            var plugin = new Plugin()
+            var plugin = new PluginDto()
             {
                 File = file,
                 OnModrinth = false
@@ -84,7 +86,6 @@ public class Updater
 
                 if (latestVersion is null)
                 {
-                    //todo: Somehow write this error line
                     pbar.ObservedError = true;
                     pbar.WriteErrorLine($"Looks like {file.Name} is not a server plugin, please check the current version: {currentVersion.GetUrl(project)}");
                     continue;
@@ -92,7 +93,7 @@ public class Updater
 
                 if (IsLatest(currentVersion, latestVersion))
                 {
-                    plugin = new Plugin
+                    plugin = new PluginDto
                     {
                         File = file,
                         CurrentVersion = currentVersion,
@@ -104,7 +105,7 @@ public class Updater
                 }
                 else
                 {
-                    plugin = new Plugin
+                    plugin = new PluginDto
                     {
                         File = file,
                         CurrentVersion = currentVersion,
@@ -125,7 +126,10 @@ public class Updater
                 Console.WriteLine($"Unknown error while checking update for file {file.Name}: {e.Message}");
             }
             
-            plugins.Add(plugin);
+            plugins.Add(new UpdateStatus()
+            {
+                
+            });
         }
 
         pbar.Message = "Done";

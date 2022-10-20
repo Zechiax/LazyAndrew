@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using LazyAndrew.Enums;
 
 namespace LazyAndrew.Commands;
 
@@ -24,7 +25,7 @@ public class UpdateCommand : Command
 
         var defaultColor = Console.ForegroundColor;
         var updater = new Updater(di.FullName);
-        var plugins = await updater.CheckUpdates();
+        var statusList = await updater.CheckUpdates();
 
         var oldPlugins = new DirectoryInfo("oldplugins");
 
@@ -36,7 +37,7 @@ public class UpdateCommand : Command
 
         using var client = new HttpClient();
         // Iterate not up-to-date plugins
-        foreach (var plugin in plugins.Where(plugin => plugin.OnModrinth && !plugin.UpToDate))
+        foreach (var plugin in statusList.Where(x => x.SuccessfulCheck && x.Status == Update.NewerVersionFound).Select(status => status.Payload))
         {
             if (plugin.LatestVersion!.Files.Length > 1)
             {

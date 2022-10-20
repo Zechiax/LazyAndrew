@@ -1,10 +1,9 @@
-using System.Collections;
 using Modrinth.RestClient.Models;
 using Version = Modrinth.RestClient.Models.Version;
 
-namespace LazyAndrew;
+namespace LazyAndrew.Models;
 
-public class Plugin
+public class PluginDto
 {
     public bool OnModrinth = true;
     public FileInfo? File { get; set; }
