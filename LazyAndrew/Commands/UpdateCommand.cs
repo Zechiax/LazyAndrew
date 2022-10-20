@@ -1,5 +1,6 @@
 ﻿using System.CommandLine;
 using LazyAndrew.Enums;
+using LazyAndrew.Exceptions;
 
 namespace LazyAndrew.Commands;
 
@@ -7,8 +8,10 @@ public class UpdateCommand : Command
 {
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly Option<DirectoryInfo> _directoryOption;
+    private readonly FileDownloader _downloader;
     public UpdateCommand() : base("update", "update all plugins that have updates")
     {
+        _downloader = new FileDownloader();
         _directoryOption = Andrew.GetPluginDirectoryOption();
         
         AddOption(_directoryOption);
@@ -19,7 +22,7 @@ public class UpdateCommand : Command
         }, _directoryOption);
     }
 
-    private static async Task UpdatePlugins(FileSystemInfo di)
+    private async Task UpdatePlugins(FileSystemInfo di)
     {
         Console.WriteLine("Checking plugins that need an update");
 
@@ -34,12 +37,10 @@ public class UpdateCommand : Command
             Console.WriteLine("Creating directory oldplugins");
             oldPlugins.Create();
         }
-
-        using var client = new HttpClient();
         // Iterate not up-to-date plugins
         foreach (var plugin in statusList.Where(x => x.SuccessfulCheck && x.Status == CheckStatus.NewerVersionFound).Select(status => status.Payload))
         {
-            if (plugin.LatestVersion!.Files.Length > 1)
+            if (plugin!.LatestVersion!.Files.Length > 1)
             {
                 // TODO: Better message
                 Console.WriteLine(
@@ -52,16 +53,27 @@ public class UpdateCommand : Command
             var file = plugin.LatestVersion.Files.First();
 
             Console.WriteLine($"Downloading plugin {plugin.Project!.Title}");
-            var stream = await client.GetByteArrayAsync(file.Url);
 
-            Console.WriteLine("Moving old version to oldplugins directory");
+            try
+            {
+                var downloadedFile = await _downloader.DownloadFile(file.Url, file.Hashes.Sha512, HashAlgorithm.sha512);
+                Console.WriteLine("File Hash verified");
+                Console.WriteLine($"Download of plugin {plugin.Project!.Title} completed");
+            
+                Console.WriteLine("Moving old version to oldplugins directory");
 
-            //TODO: Check if file already exists
-            File.Move(plugin.File!.FullName, Path.Combine(oldPlugins.FullName, plugin.File.Name));
-            await File.WriteAllBytesAsync(Path.Combine(di.FullName, file.FileName), stream);
+                //TODO: Check if file already exists
+                File.Move(plugin.File.FullName, Path.Combine(oldPlugins.FullName, plugin.File.Name));
+                
+                File.Move(downloadedFile.FullName, Path.Combine(di.FullName, file.FileName));
 
-            Console.WriteLine($"Download of plugin {plugin.Project!.Title} completed");
-            Console.WriteLine();
+                Console.WriteLine("Plugin updated");
+                Console.WriteLine();
+            }
+            catch (HashNotVerified e)
+            {
+                Console.WriteLine("Could not verify file hash, aborting download");
+            }
         }
     }
 }

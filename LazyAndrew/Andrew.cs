@@ -35,6 +35,7 @@ public class Andrew
 
     public async Task<int> StartAsync()
     {
+        // Skip 1 as the first argument is the program's directory
         return await _rootCommand.InvokeAsync(Environment.GetCommandLineArgs().Skip(1).ToArray());
     }
 }
