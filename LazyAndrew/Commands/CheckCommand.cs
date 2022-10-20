@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using Modrinth.RestClient.Extensions;
 
 namespace LazyAndrew.Commands;
 
@@ -19,7 +20,44 @@ public class CheckCommand : Command
         
         this.SetHandler(async (directory, showAll) =>
         {
-            await Updater.CheckPluginUpdates(directory, showAll);
+            await CheckPluginUpdates(directory, showAll);
         }, _directoryOption, _showAllOption);
+    }
+    
+    private static async Task CheckPluginUpdates(FileSystemInfo di, bool showAll)
+    {
+        var defaultColor = Console.ForegroundColor;
+
+        var updater = new Updater(di.FullName);
+    
+        var plugins = await updater.CheckUpdates();
+        var pluginsOnModrinth = plugins.OrderBy(x => x.OnModrinth).ThenBy(x => x.UpToDate).ToList();
+    
+        foreach (var plugin in pluginsOnModrinth)
+        {
+            if (plugin.OnModrinth == false)
+            {
+                if (showAll)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"X This version of plugin {plugin.File!.Name} is not on Modrinth");
+                }
+                continue;
+            }
+
+            if (plugin.UpToDate)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"Plugin {plugin.File!.Name} is up to date");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine(
+                    $"Found new version for {plugin.File!.Name} => {plugin.LatestVersion!.VersionNumber} link: {plugin.LatestVersion.GetUrl(plugin.Project!)}");
+            }
+        }
+
+        Console.ForegroundColor = defaultColor;
     }
 }
