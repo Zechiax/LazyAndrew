@@ -57,6 +57,6 @@ public class FileDownloader
             return fi;
         }
 
-        throw new HashNotVerified("Hash string are not equal");
+        throw new HashNotVerified("Computed hash and provided hash are not equal");
     }
 }
