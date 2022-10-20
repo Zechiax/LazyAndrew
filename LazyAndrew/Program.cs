@@ -5,7 +5,7 @@ Log.Logger = new LoggerConfiguration()
 # if DEBUG
     .MinimumLevel.Debug()
 # else
-    .MinimumLevel.Info()
+    .MinimumLevel.Information()
 # endif
     .WriteTo.Console(outputTemplate: "{Message}{NewLine}{Exception}")
     .CreateLogger();
