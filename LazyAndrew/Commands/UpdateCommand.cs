@@ -37,7 +37,7 @@ public class UpdateCommand : Command
 
         using var client = new HttpClient();
         // Iterate not up-to-date plugins
-        foreach (var plugin in statusList.Where(x => x.SuccessfulCheck && x.Status == Update.NewerVersionFound).Select(status => status.Payload))
+        foreach (var plugin in statusList.Where(x => x.SuccessfulCheck && x.Status == CheckStatus.NewerVersionFound).Select(status => status.Payload))
         {
             if (plugin.LatestVersion!.Files.Length > 1)
             {

@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Security.Cryptography;
+using LazyAndrew.Enums;
 using LazyAndrew.Interfaces;
 using LazyAndrew.Models;
 using Modrinth.RestClient;
@@ -14,11 +15,12 @@ namespace LazyAndrew;
 public class Updater
 {
     private readonly DirectoryInfo _pluginDirectory;
-    public bool ShowUnsupportedMods { get; set; } = false;
     private IModrinthApi _api;
     private string[] _pluginLoaders = new[] {"bukkit", "paper", "purpur", "spigot"};
+    private SHA1 _cryptoService;
     public Updater(string pluginDirectory)
     {
+        _cryptoService = SHA1.Create();
         this._pluginDirectory = new DirectoryInfo(pluginDirectory);
 
         _api = ModrinthApi.NewClient();
@@ -42,6 +44,11 @@ public class Updater
         return latestVersion;
     }
 
+    private List<FileInfo> GetJarFilesInPluginDirectory()
+    {
+        return _pluginDirectory.EnumerateFiles().Where(x => x.Extension == ".jar").ToList();
+    }
+    
     public async Task<List<IUpdateStatus<PluginDto>>> CheckUpdates()
     {
         if (_pluginDirectory is null)
@@ -49,92 +56,93 @@ public class Updater
             throw new DirectoryNotFoundException();
         }
 
-        var pluginFiles = _pluginDirectory.EnumerateFiles().Where(x => x.Extension == ".jar").ToList();
-        
-        var totalTicks = pluginFiles.Count;
-        var options = new ProgressBarOptions
-        {
-            ProgressCharacter = '─',
-            ProgressBarOnBottom = true,
-            CollapseWhenFinished = true
-        };
-
-        using var pbar = new ProgressBar(totalTicks, "Update check started", options);
-        
         var plugins = new List<IUpdateStatus<PluginDto>>();
-        using var cryptoService = SHA1.Create();
+        
+        await CheckPlugins(plugins);
+        await GetUpdateInformation(plugins);
+
+        return plugins;
+    }
+
+    private async Task<List<IUpdateStatus<PluginDto>>> GetUpdateInformation(List<IUpdateStatus<PluginDto>> plugins)
+    {
+        // Select project ids
+        var projectIds = plugins.Where(x => x.SuccessfulCheck && x.Status == CheckStatus.PendingCheck)
+            .Select(x => x.Payload!.CurrentVersion.ProjectId);
+
+        var projects = await _api.GetMultipleProjectsAsync(projectIds);
+        
+        foreach (var updateStatus in plugins.Where(x => x.SuccessfulCheck && x.Status == CheckStatus.PendingCheck))
+        {
+            var payload = updateStatus.Payload!;
+            
+            var project = projects.First(x => x.Id == payload.CurrentVersion.ProjectId);
+            payload.Project = project;
+            
+            var versionList = await _api.GetProjectVersionListAsync(project.Id);
+            var latestVersion = FindLatestServerVersion(versionList);
+            
+            if (latestVersion is null)
+            {
+                updateStatus.Status = CheckStatus.NoLatest;
+                continue;
+            }
+
+            payload.LatestVersion = latestVersion;
+
+            if (IsLatest(updateStatus.Payload!.CurrentVersion, latestVersion))
+            {
+                updateStatus.Status = CheckStatus.UpToDate;
+            }
+            else
+            {
+                updateStatus.Status = CheckStatus.NewerVersionFound;
+            }
+        }
+
+        return plugins;
+    }
+
+    private async Task CheckPlugins(List<IUpdateStatus<PluginDto>> plugins)
+    {
+        var pluginFiles = GetJarFilesInPluginDirectory();
+        
         foreach (var file in pluginFiles)
         {
-            pbar.Tick($"Checking {file.Name} for updates");
+            var status = new UpdateStatus();
             await using var stream = file.OpenRead();
-            var hash = Convert.ToHexString(await cryptoService.ComputeHashAsync(stream));
 
-            var plugin = new PluginDto()
-            {
-                File = file,
-                OnModrinth = false
-            };
+            var hash = await GetStringHash(stream);
+
             try
             {
                 var currentVersion = await _api.GetVersionByHashAsync(hash, HashAlgorithm.Sha1);
-
-                var versionList = await _api.GetProjectVersionListAsync(currentVersion.ProjectId);
-
-                var project = await _api.GetProjectAsync(currentVersion.ProjectId);
-
-                var latestVersion = FindLatestServerVersion(versionList);
-
-                if (latestVersion is null)
-                {
-                    pbar.ObservedError = true;
-                    pbar.WriteErrorLine($"Looks like {file.Name} is not a server plugin, please check the current version: {currentVersion.GetUrl(project)}");
-                    continue;
-                }
-
-                if (IsLatest(currentVersion, latestVersion))
-                {
-                    plugin = new PluginDto
-                    {
-                        File = file,
-                        CurrentVersion = currentVersion,
-                        LatestVersion = latestVersion,
-                        Project = project,
-                        UpToDate = true,
-                        OnModrinth = true
-                    };
-                }
-                else
-                {
-                    plugin = new PluginDto
-                    {
-                        File = file,
-                        CurrentVersion = currentVersion,
-                        LatestVersion = latestVersion,
-                        Project = project,
-                        UpToDate = false,
-                        OnModrinth = true
-                    };
-                }
+                status.Payload = new PluginDto(currentVersion, file);
+                status.SuccessfulCheck = true;
+                status.Status = CheckStatus.PendingCheck;
             }
-            // Not on Modrinth
+            // This file is not on Modrinth
             catch (ApiException e) when (e.StatusCode == HttpStatusCode.NotFound)
             {
-                plugin.OnModrinth = false;
+                status.Name = file.Name;
+                status.SuccessfulCheck = true;
+                status.Status = CheckStatus.NotOnModrinth;
             }
-            catch (ApiException e)
+            catch (Exception e)
             {
-                Console.WriteLine($"Unknown error while checking update for file {file.Name}: {e.Message}");
+                status.Name = file.Name;
+                status.ErrorMessage = e.Message;
+                status.SuccessfulCheck = false;
             }
-            
-            plugins.Add(new UpdateStatus()
-            {
-                
-            });
-        }
 
-        pbar.Message = "Done";
-        pbar.Dispose();
-        Console.WriteLine();
-        return plugins;
+            await stream.DisposeAsync();
+            
+            plugins.Add(status);
+        }
+    }
+
+    private async Task<string> GetStringHash(FileStream stream)
+    {
+        return Convert.ToHexString(await _cryptoService.ComputeHashAsync(stream));
     }
 }

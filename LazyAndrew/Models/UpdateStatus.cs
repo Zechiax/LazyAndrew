@@ -5,7 +5,9 @@ namespace LazyAndrew.Models;
 
 public class UpdateStatus : IUpdateStatus<PluginDto>
 {
+    public string Name { get; set; } = null!;
     public bool SuccessfulCheck { get; set; }
-    public Update Status { get; set; }
-    public PluginDto Payload { get; set; } = null!;
+    public CheckStatus Status { get; set; }
+    public PluginDto? Payload { get; set; }
+    public string? ErrorMessage { get; set; }
 }

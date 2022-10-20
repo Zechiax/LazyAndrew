@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using LazyAndrew.Enums;
 using Modrinth.RestClient.Extensions;
 
 namespace LazyAndrew.Commands;
@@ -31,21 +32,23 @@ public class CheckCommand : Command
         var updater = new Updater(di.FullName);
     
         var statusList = await updater.CheckUpdates();
-        var pluginsOnModrinth = statusList.OrderBy(x => x.SuccessfulCheck && x.Payload.OnModrinth).ThenBy(x => x.Payload.UpToDate).ToList();
+        var plugins = statusList.OrderByDescending(x => x.Status == CheckStatus.NotOnModrinth)
+            .ThenBy(x => x.SuccessfulCheck).ThenBy(x => x.Status == CheckStatus.UpToDate).ToList();
     
-        foreach (var plugin in pluginsOnModrinth.Select(status => status.Payload))
+        foreach (var status in plugins)
         {
-            if (plugin.OnModrinth == false)
+            var plugin = status.Payload;
+            if (status.Status == CheckStatus.NotOnModrinth)
             {
                 if (showAll)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"X This version of plugin {plugin.File!.Name} is not on Modrinth");
+                    Console.WriteLine($"X This version of plugin {status.Name} is not on Modrinth");
                 }
                 continue;
             }
 
-            if (plugin.UpToDate)
+            if (status.Status == CheckStatus.UpToDate)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"Plugin {plugin.File!.Name} is up to date");
