@@ -37,7 +37,7 @@ public class CheckCommand : Command
     
         foreach (var status in plugins)
         {
-            var plugin = status.Payload;
+            var plugin = status.Payload!;
             if (status.Status == CheckStatus.NotOnModrinth)
             {
                 if (showAll)
@@ -45,6 +45,13 @@ public class CheckCommand : Command
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine($"X This version of plugin {status.Name} is not on Modrinth");
                 }
+                continue;
+            }
+
+            if (status.Status == CheckStatus.NoLatest)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.WriteLine($"The plugin {plugin.File.Name} is on Modrinth, but I couldn't find any latest server version, please, check manually for the latest version: {plugin.Project?.Url}");
                 continue;
             }
 
@@ -57,7 +64,7 @@ public class CheckCommand : Command
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine(
-                    $"Found new version for {plugin.File!.Name} => {plugin.LatestVersion!.VersionNumber} link: {plugin.LatestVersion.GetUrl(plugin.Project!)}");
+                    $"Found new version for {plugin.File.Name} => {plugin.LatestVersion!.VersionNumber} link: {plugin.LatestVersion.GetUrl(plugin.Project!)}");
             }
         }
 

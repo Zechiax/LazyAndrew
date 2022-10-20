@@ -85,6 +85,7 @@ public class Updater
             if (latestVersion is null)
             {
                 updateStatus.Status = CheckStatus.NoLatest;
+                payload.Project = project;
                 continue;
             }
 

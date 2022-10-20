@@ -58,7 +58,7 @@ public class UpdateCommand : Command
 
             //TODO: Check if file already exists
             File.Move(plugin.File!.FullName, Path.Combine(oldPlugins.FullName, plugin.File.Name));
-            File.WriteAllBytes(Path.Combine(di.FullName, file.FileName), stream);
+            await File.WriteAllBytesAsync(Path.Combine(di.FullName, file.FileName), stream);
 
             Console.WriteLine($"Download of plugin {plugin.Project!.Title} completed");
             Console.WriteLine();
