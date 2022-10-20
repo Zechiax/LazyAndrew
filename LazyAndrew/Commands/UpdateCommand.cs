@@ -70,7 +70,7 @@ public class UpdateCommand : Command
                 Console.WriteLine("Plugin updated");
                 Console.WriteLine();
             }
-            catch (HashNotVerified e)
+            catch (HashNotVerified)
             {
                 Console.WriteLine("Could not verify file hash, aborting download");
             }
