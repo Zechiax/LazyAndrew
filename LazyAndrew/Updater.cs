@@ -1,10 +1,12 @@
 ﻿using System.Net;
 using System.Security.Cryptography;
 using LazyAndrew.Enums;
+using LazyAndrew.Exceptions;
 using LazyAndrew.Interfaces;
 using LazyAndrew.Models;
 using Modrinth.RestClient;
 using Modrinth.RestClient.Extensions;
+using Modrinth.RestClient.Models.Enums;
 using RestEase;
 using ShellProgressBar;
 using HashAlgorithm = Modrinth.RestClient.Models.Enums.HashAlgorithm;
@@ -16,19 +18,37 @@ public class Updater
 {
     private readonly DirectoryInfo _pluginDirectory;
     private IModrinthApi _api;
-    private string[] _pluginLoaders = new[] {"bukkit", "paper", "purpur", "spigot"};
-    private SHA1 _cryptoService;
-    public Updater(string pluginDirectory)
+    private readonly string[] _pluginLoaders = new[] {"bukkit", "paper", "purpur", "spigot"};
+    private readonly SHA1 _cryptoService;
+    private readonly string _targetGameVersion;
+    public Updater(string pluginDirectory, string version = "latest")
     {
         _cryptoService = SHA1.Create();
-        this._pluginDirectory = new DirectoryInfo(pluginDirectory);
+        _pluginDirectory = new DirectoryInfo(pluginDirectory);
 
         _api = ModrinthApi.NewClient();
+
+        if (CheckMcVersion(version).GetAwaiter().GetResult() == false)
+        {
+            throw new UnsupportedVersionException($"Minecraft version '{version}' is not supported");
+        }
+
+        _targetGameVersion = version;
         
+
         if (_pluginDirectory.Exists == false)
         {
             throw new DirectoryNotFoundException($"Directory '{pluginDirectory}' does not exists.");
         }
+    }
+
+    private async Task<bool> CheckMcVersion(string version)
+    {
+        var gameVersions = await _api.GetGameVersionsAsync();
+
+        var foundVersion = gameVersions.FirstOrDefault(x => x.Version == version);
+
+        return foundVersion is not null;
     }
 
     private bool IsLatest(Version currentVersion, Version latestVersion)
@@ -39,6 +59,7 @@ public class Updater
     private Version? FindLatestServerVersion(IEnumerable<Version> versionList)
     {
         var latestVersion = versionList.OrderByDescending(x => x.DatePublished)
+            .Where(x => x.GameVersions.Contains(_targetGameVersion))
             .FirstOrDefault(x => x.Loaders.Intersect(_pluginLoaders, StringComparer.InvariantCultureIgnoreCase).Any());
 
         return latestVersion;
@@ -64,7 +85,7 @@ public class Updater
         return plugins;
     }
 
-    private async Task GetUpdateInformation(List<IUpdateStatus<PluginDto>> plugins)
+    private async Task GetUpdateInformation(IReadOnlyCollection<IUpdateStatus<PluginDto>> plugins)
     {
         // Select project ids
         var projectIds = plugins.Where(x => x.SuccessfulCheck && x.Status == CheckStatus.PendingCheck)
@@ -82,9 +103,9 @@ public class Updater
             var versionList = await _api.GetProjectVersionListAsync(project.Id);
             var latestVersion = FindLatestServerVersion(versionList);
             
-            if (latestVersion is null)
+            if (project.ServerSide == Side.Unsupported || latestVersion is null)
             {
-                updateStatus.Status = CheckStatus.NoLatest;
+                updateStatus.Status = CheckStatus.ClientOnly;
                 payload.Project = project;
                 continue;
             }
@@ -102,7 +123,7 @@ public class Updater
         }
     }
 
-    private async Task CheckPlugins(List<IUpdateStatus<PluginDto>> plugins)
+    private async Task CheckPlugins(ICollection<IUpdateStatus<PluginDto>> plugins)
     {
         var pluginFiles = GetJarFilesInPluginDirectory();
         

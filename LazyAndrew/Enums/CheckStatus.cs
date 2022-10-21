@@ -18,5 +18,5 @@ public enum CheckStatus
     /// <summary>
     /// The updater couldn't find the latest server version for this project
     /// </summary>
-    NoLatest
+    ClientOnly
 }

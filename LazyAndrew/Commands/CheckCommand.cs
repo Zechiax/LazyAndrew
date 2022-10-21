@@ -8,6 +8,7 @@ public class CheckCommand : Command
 {
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly Option<DirectoryInfo> _directoryOption;
+    private readonly Option<string> _versionOption;
     private readonly Option<bool> _showAllOption  =
         new(name: "--all", description: "If it should display mods that are not on Modrinth");
     public CheckCommand() : base("check", "Checks for updates for all plugins")
@@ -15,21 +16,23 @@ public class CheckCommand : Command
         _showAllOption.AddAlias("-a");
 
         _directoryOption = Andrew.GetPluginDirectoryOption();
+        _versionOption = Andrew.GetVersionOption();
 
+        AddOption(_versionOption);
         AddOption(_showAllOption);
         AddOption(_directoryOption);
         
-        this.SetHandler(async (directory, showAll) =>
+        this.SetHandler(async (directory, showAll, version) =>
         {
-            await CheckPluginUpdates(directory, showAll);
-        }, _directoryOption, _showAllOption);
+            await CheckPluginUpdates(directory, showAll, version);
+        }, _directoryOption, _showAllOption, _versionOption);
     }
     
-    private static async Task CheckPluginUpdates(FileSystemInfo di, bool showAll)
+    private static async Task CheckPluginUpdates(FileSystemInfo di, bool showAll, string version)
     {
         var defaultColor = Console.ForegroundColor;
 
-        var updater = new Updater(di.FullName);
+        var updater = new Updater(di.FullName, version);
     
         var statusList = await updater.CheckUpdates();
         var plugins = statusList.OrderByDescending(x => x.Status == CheckStatus.NotOnModrinth)
@@ -48,7 +51,7 @@ public class CheckCommand : Command
                 continue;
             }
 
-            if (status.Status == CheckStatus.NoLatest)
+            if (status.Status == CheckStatus.ClientOnly)
             {
                 Console.ForegroundColor = ConsoleColor.DarkYellow;
                 Console.WriteLine($"The plugin {plugin.File.Name} is on Modrinth, but I couldn't find any latest server version, please, check manually for the latest version: {plugin.Project?.Url}");
@@ -64,7 +67,7 @@ public class CheckCommand : Command
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine(
-                    $"Found new version for {plugin.File.Name} => {plugin.LatestVersion!.VersionNumber} link: {plugin.LatestVersion.GetUrl(plugin.Project!)}");
+                    $"Found new version for {plugin.File.Name} => {plugin.LatestVersion!.VersionNumber} ({plugin.LatestVersion!}) link: {plugin.LatestVersion.GetUrl(plugin.Project!)}");
             }
         }
 

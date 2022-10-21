@@ -22,6 +22,25 @@ public class Andrew
         
         return option;
     }
+    
+    /// <summary>
+    /// Creates and returns new option for setting the plugin directory
+    /// </summary>
+    /// <returns></returns>
+    public static Option<string> GetVersionOption()
+    {
+        var option = new Option<string>(
+            name: "--version",
+            description: "Target minecraft version (default is the latest)")
+        {
+            IsRequired = true
+        };
+
+        option.SetDefaultValue("latest");
+        option.AddAlias("-v");
+        
+        return option;
+    }
 
     private readonly RootCommand _rootCommand;
 

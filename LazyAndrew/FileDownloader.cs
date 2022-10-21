@@ -69,6 +69,6 @@ public class FileDownloader
         }
 
         Log.Debug("Hashes are not equal");
-        throw new HashNotVerified("Computed hash and provided hash are not equal");
+        throw new HashNotVerifiedException("Computed hash and provided hash are not equal");
     }
 }
