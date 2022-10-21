@@ -8,11 +8,11 @@ on:
 
 jobs:
   build-and-test:
-    name: build-and-test-${{matrix.os}}
-    runs-on: ${{ matrix.os }}
+    name: build-and-test-${{matrix.rid}}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        rid: [win-x64, win-arm64,linux-x64, linux-arm64, linux-arm, osx-x64]
 
     steps:
     - uses: actions/checkout@v3
@@ -27,11 +27,11 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Publish
-      run: dotnet publish -c Release -o publish
+      run: dotnet publish -c Release -p:PublishSingleFile=true -o publish
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.os }}
-        path: publish/**
+        name: lazyandrew-${{ matrix.rid }}
+        path: publish/lazyandrew**
         if-no-files-found: error
 
