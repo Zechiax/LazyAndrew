@@ -26,3 +26,12 @@ jobs:
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+    - name: Publish
+      run: dotnet publish -c Release
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: lazyandrew
+        path: lazyandrew/**
+        if-no-files-found: error
+
