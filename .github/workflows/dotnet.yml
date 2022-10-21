@@ -27,7 +27,7 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Publish
-      run: dotnet publish -c Release --runtime ${{ matrix.rid }} -p:PublishSingleFile=true -o publish
+      run: dotnet publish -c Release --runtime ${{ matrix.rid }} -p:PublishTrimmed -p:DebugType=None -p:DebugSymbols=false --self-contained -p:PublishSingleFile=true -o publish
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3
       with:
