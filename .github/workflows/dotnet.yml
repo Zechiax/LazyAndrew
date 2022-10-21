@@ -32,6 +32,6 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: lazyandrew
-        path: lazyandrew/**
+        path: LazyAndrew/**
         if-no-files-found: error
 
