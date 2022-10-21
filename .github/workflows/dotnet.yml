@@ -27,11 +27,11 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Publish
-      run: dotnet publish -c Release
+      run: dotnet publish -c Release -o publish
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3
       with:
         name: lazyandrew
-        path: LazyAndrew/**
+        path: publish/**
         if-no-files-found: error
 
