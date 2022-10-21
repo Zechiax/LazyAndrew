@@ -8,6 +8,7 @@ using Modrinth.RestClient;
 using Modrinth.RestClient.Extensions;
 using Modrinth.RestClient.Models.Enums;
 using RestEase;
+using Serilog;
 using ShellProgressBar;
 using HashAlgorithm = Modrinth.RestClient.Models.Enums.HashAlgorithm;
 using Version = Modrinth.RestClient.Models.Version;
@@ -28,18 +29,32 @@ public class Updater
 
         _api = ModrinthApi.NewClient();
 
-        if (CheckMcVersion(version).GetAwaiter().GetResult() == false)
+        if (version == "latest")
         {
-            throw new UnsupportedVersionException($"Minecraft version '{version}' is not supported");
+            _targetGameVersion = GetLatestGameVersion().GetAwaiter().GetResult();
+            Log.Debug("Set the target version to latest version: {Latest}", _targetGameVersion);
         }
+        else
+        {
+            if (CheckMcVersion(version).GetAwaiter().GetResult() == false)
+            {
+                throw new UnsupportedVersionException($"Minecraft version '{version}' is not supported");
+            }
 
-        _targetGameVersion = version;
-        
+            _targetGameVersion = version;
+            Log.Debug("Set the target version to custom target version: {Latest}", _targetGameVersion);
+        }
 
         if (_pluginDirectory.Exists == false)
         {
             throw new DirectoryNotFoundException($"Directory '{pluginDirectory}' does not exists.");
         }
+    }
+
+    private async Task<string> GetLatestGameVersion()
+    {
+        var gameVersions = await _api.GetGameVersionsAsync();
+        return gameVersions.OrderByDescending(x => x.Date).First(x => x.VersionType == GameVersionType.Release).Version;
     }
 
     private async Task<bool> CheckMcVersion(string version)
