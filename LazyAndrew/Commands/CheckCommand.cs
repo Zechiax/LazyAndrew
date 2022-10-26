@@ -67,7 +67,7 @@ public class CheckCommand : Command
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine(
-                    $"Found new version for {plugin.File.Name} => {plugin.LatestVersion!.VersionNumber} ({plugin.LatestVersion!}) link: {plugin.LatestVersion.GetUrl(plugin.Project!)}");
+                    $"Found new version for {plugin.File.Name} => {plugin.LatestVersion!.VersionNumber} link: {plugin.LatestVersion.GetUrl(plugin.Project!)}");
             }
         }
 

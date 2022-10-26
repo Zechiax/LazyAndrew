@@ -8,26 +8,29 @@ public class UpdateCommand : Command
 {
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly Option<DirectoryInfo> _directoryOption;
+    private readonly Option<string> _versionOption;
     private readonly FileDownloader _downloader;
     public UpdateCommand() : base("update", "update all plugins that have updates")
     {
         _downloader = new FileDownloader();
         _directoryOption = Andrew.GetPluginDirectoryOption();
+        _versionOption = Andrew.GetVersionOption();
         
+        AddOption(_versionOption);
         AddOption(_directoryOption);
         
-        this.SetHandler(async directory =>
+        this.SetHandler(async (directory, version) =>
         {
-            await UpdatePlugins(directory);
-        }, _directoryOption);
+            await UpdatePlugins(directory, version);
+        }, _directoryOption, _versionOption);
     }
 
-    private async Task UpdatePlugins(FileSystemInfo di)
+    private async Task UpdatePlugins(FileSystemInfo di, string version)
     {
         Console.WriteLine("Checking plugins that need an update");
 
         var defaultColor = Console.ForegroundColor;
-        var updater = new Updater(di.FullName);
+        var updater = new Updater(di.FullName, version);
         var statusList = await updater.CheckUpdates();
 
         var oldPlugins = new DirectoryInfo("oldplugins");
