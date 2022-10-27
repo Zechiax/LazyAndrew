@@ -12,8 +12,8 @@ public class CryptoService
         _sha1 = SHA1.Create();
         _sha512 = SHA512.Create();
     }
-
-    public string ComputeFileHash(FileStream stream, Enums.HashAlgorithm algorithm = Enums.HashAlgorithm.sha512)
+    
+    public string ComputeHashAsync(FileStream stream, Enums.HashAlgorithm algorithm = Enums.HashAlgorithm.sha512)
     {
         return algorithm switch
         {

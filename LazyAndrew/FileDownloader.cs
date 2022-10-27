@@ -58,7 +58,7 @@ public class FileDownloader
         await using var fileStream = fi.OpenRead();
         
         Log.Debug("Computing hash");
-        var downloadHash = _cryptoService.ComputeFileHash(fileStream);
+        var downloadHash = _cryptoService.ComputeHashAsync(fileStream);
         
         Log.Debug("{Hash} provided hash", hash);
         Log.Debug("{Hash} computed hash", hash);

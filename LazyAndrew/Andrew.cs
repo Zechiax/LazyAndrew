@@ -50,6 +50,7 @@ public class Andrew
 
         _rootCommand.AddCommand(new CheckCommand());
         _rootCommand.AddCommand(new UpdateCommand());
+        _rootCommand.AddCommand(new InitializeCommand());
     }
 
     public async Task<int> StartAsync()

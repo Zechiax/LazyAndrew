@@ -19,14 +19,16 @@ public class Updater
 {
     private readonly DirectoryInfo _pluginDirectory;
     private IModrinthApi _api;
-    private readonly string[] _pluginLoaders = new[] {"bukkit", "paper", "purpur", "spigot"};
-    private readonly SHA1 _cryptoService;
+    private readonly string[] _pluginLoaders = {"bukkit", "spigot", "paper", "purpur"};
+    private readonly string[] _serverModLoaders = {"fabric", "quilt", "forge"};
+
+    private readonly CryptoService _cryptoService;
     private readonly string _targetGameVersion;
     public Updater(string pluginDirectory, string version = "latest")
     {
-        _cryptoService = SHA1.Create();
         _pluginDirectory = new DirectoryInfo(pluginDirectory);
 
+        _cryptoService = new CryptoService();
         _api = ModrinthApi.NewClient();
 
         if (version == "latest")
@@ -147,7 +149,7 @@ public class Updater
             var status = new UpdateStatus();
             await using var stream = file.OpenRead();
 
-            var hash = await GetStringHash(stream);
+            var hash = GetStringHash(stream);
 
             try
             {
@@ -176,8 +178,8 @@ public class Updater
         }
     }
 
-    private async Task<string> GetStringHash(FileStream stream)
+    private string GetStringHash(FileStream stream)
     {
-        return Convert.ToHexString(await _cryptoService.ComputeHashAsync(stream));
+        return _cryptoService.ComputeHashAsync(stream);
     }
 }
