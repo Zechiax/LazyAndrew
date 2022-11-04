@@ -33,7 +33,7 @@ public class Andrew
             name: "--version",
             description: "Target minecraft version (default is the latest)")
         {
-            IsRequired = true
+            IsRequired = false
         };
 
         option.SetDefaultValue("latest");
