@@ -9,6 +9,7 @@ using Modrinth.RestClient.Extensions;
 using Modrinth.RestClient.Models.Enums;
 using RestEase;
 using Serilog;
+using Serilog.Core;
 using ShellProgressBar;
 using HashAlgorithm = Modrinth.RestClient.Models.Enums.HashAlgorithm;
 using Version = Modrinth.RestClient.Models.Version;
@@ -143,13 +144,14 @@ public class Updater
     private async Task CheckPlugins(ICollection<IUpdateStatus<PluginDto>> plugins)
     {
         var pluginFiles = GetJarFilesInPluginDirectory();
-        
+
         foreach (var file in pluginFiles)
         {
             var status = new UpdateStatus();
             await using var stream = file.OpenRead();
 
-            var hash = GetStringHash(stream);
+            Log.Debug("Checking file {FileName}", file.Name);
+            var hash = _cryptoService.ComputeHashAsync(stream, Enums.HashAlgorithm.sha1);;
 
             try
             {
@@ -161,12 +163,14 @@ public class Updater
             // This file is not on Modrinth
             catch (ApiException e) when (e.StatusCode == HttpStatusCode.NotFound)
             {
+                Log.Debug("File {FileName} is not on Modrinth", file.Name);
                 status.Name = file.Name;
                 status.SuccessfulCheck = true;
                 status.Status = CheckStatus.NotOnModrinth;
             }
             catch (Exception e)
             {
+                Log.Warning("Update check failed for file {FileName}", file.Name);
                 status.Name = file.Name;
                 status.ErrorMessage = e.Message;
                 status.SuccessfulCheck = false;
@@ -176,10 +180,5 @@ public class Updater
             
             plugins.Add(status);
         }
-    }
-
-    private string GetStringHash(FileStream stream)
-    {
-        return _cryptoService.ComputeHashAsync(stream);
     }
 }
