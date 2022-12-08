@@ -23,6 +23,10 @@ public class Updater
     private readonly string[] _pluginLoaders = {"bukkit", "spigot", "paper", "purpur"};
     private readonly string[] _serverModLoaders = {"fabric", "quilt", "forge"};
 
+    private bool _versionSpecified = false;
+
+    private int onOlderVersion = 0;
+
     private readonly CryptoService _cryptoService;
     private readonly string _targetGameVersion;
     public Updater(string pluginDirectory, string version = "latest")
@@ -39,6 +43,7 @@ public class Updater
         }
         else
         {
+            _versionSpecified = true;
             if (CheckMcVersion(version).GetAwaiter().GetResult() == false)
             {
                 throw new UnsupportedVersionException($"Minecraft version '{version}' is not supported");
@@ -98,6 +103,23 @@ public class Updater
         var plugins = new List<IUpdateStatus<PluginDto>>();
         
         await CheckPlugins(plugins);
+        
+        // If more than half of plugins are for older version, we ask the user if they want to continue
+        if (onOlderVersion > plugins.Count / 2)
+        {
+            Console.WriteLine($"More than half of plugins are for older version of Minecraft (specified is {_targetGameVersion}). Do you want to continue? (y/n)");
+            var answer = Console.ReadLine()?.ToLowerInvariant();
+            if (answer == "n")
+            {
+                return plugins;
+            }
+            if (answer != "y")
+            {
+                Console.WriteLine("Unrecognized answer, assuming no.");
+                return plugins;
+            }
+        }
+        
         await GetUpdateInformation(plugins);
 
         return plugins;
@@ -159,6 +181,16 @@ public class Updater
                 status.Payload = new PluginDto(currentVersion, file);
                 status.SuccessfulCheck = true;
                 status.Status = CheckStatus.PendingCheck;
+
+                // We update the 
+                if (_versionSpecified == false)
+                {
+                    // The version used if for older one
+                    if (currentVersion.GameVersions.Contains(_targetGameVersion) == false)
+                    {
+                        onOlderVersion += 1;
+                    }
+                }
             }
             // This file is not on Modrinth
             catch (ApiException e) when (e.StatusCode == HttpStatusCode.NotFound)
