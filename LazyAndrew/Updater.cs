@@ -25,7 +25,7 @@ public class Updater
 
     private bool _versionSpecified = false;
 
-    private int onOlderVersion = 0;
+    private int _onOlderVersion = 0;
 
     private readonly CryptoService _cryptoService;
     private readonly string _targetGameVersion;
@@ -105,7 +105,7 @@ public class Updater
         await CheckPlugins(plugins);
         
         // If more than half of plugins are for older version, we ask the user if they want to continue
-        if (onOlderVersion > plugins.Count / 2)
+        if (_onOlderVersion > plugins.Count / 2)
         {
             Console.WriteLine($"More than half of plugins are for older version of Minecraft (specified is {_targetGameVersion}). Do you want to continue? (y/n)");
             var answer = Console.ReadLine()?.ToLowerInvariant();
@@ -188,7 +188,7 @@ public class Updater
                     // The version used if for older one
                     if (currentVersion.GameVersions.Contains(_targetGameVersion) == false)
                     {
-                        onOlderVersion += 1;
+                        _onOlderVersion += 1;
                     }
                 }
             }
