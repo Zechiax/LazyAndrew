@@ -39,7 +39,7 @@ public class Updater
         if (version == "latest")
         {
             _targetGameVersion = GetLatestGameVersion().GetAwaiter().GetResult();
-            Log.Debug("Set the target version to latest version: {Latest}", _targetGameVersion);
+            Log.Debug("Version not specified, setting the target version to latest version: {Latest}", _targetGameVersion);
         }
         else
         {
