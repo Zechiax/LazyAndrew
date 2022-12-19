@@ -2,6 +2,6 @@
 
 public class Config
 {
-    public string DefaultLoader { get; set; }
-    public string DefaultGameVersion { get; set; }
+    public string DefaultLoader { get; set; } = null!;
+    public string DefaultGameVersion { get; set; } = null!;
 }
